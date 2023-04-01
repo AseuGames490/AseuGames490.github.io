@@ -30,6 +30,10 @@ var idps='idps.hex';
 var act='act.dat';
 var start_x='xxxx';
 
+// 20230315 HEN installer bytes to signify installer running
+// The HEN payload will check this value so it knows whether or not to remove boot_plugins.txt
+var hen_installer_bytes=0x48454E00;
+
 var usb_sp='/dev_hdd0/theme/PS3HEN.p3t';
 var mount_path='/dev_blind';
 var flash_partition='xxxxCELL_FS_IOS:BUILTIN_FLSH1';
@@ -1087,6 +1091,13 @@ function strncmp(str1, str2, n) {
                               (( str1 > str2 ) ? 1 : -1 ));
 }
 
+function set_hen_install_flag()
+{
+	var installed="48454E00"; //HEN
+	var check=checkMemory(0x8a000020,0x10,3);
+	check=check.toAscii(true);
+}
+
 function rop_exit_hen(suc, fail)
 {
 	// // operations to execute on ROP exit
@@ -2001,7 +2012,13 @@ function dex()
 			break;
 			
 		case "4.84":
-			if(document.getElementById('dex').checked===true){loaddex_484();}//alert("calling loaddex_484");
+			if(document.getElementById('dex').checked===true)
+			{
+				alert('DEX Payload Will Now Download. Overwrite This File When Prompted!');
+				downloadhenD();
+				loaddex_484();
+			}
+			//alert("calling loaddex_484");
 			else {loadcex_484();}
 			disable_trigger();
 			break;
@@ -2389,15 +2406,27 @@ function ps3chk(){
 	var ua = navigator.userAgent;
 	var uaStringCheck = ua.substring(ua.indexOf("5.0 (") + 5, ua.indexOf(") Apple") - 7);
 	var fwVersion = ua.substring(ua.indexOf("5.0 (") + 19, ua.indexOf(") Apple"));
-	var msgHFW = "ATTENTION!\n\nYour firmware version requires 4.84 - 4.88 HFW (Hybrid Firmware) to be installed, containing exploitable modules.";
+	var msgHFW = "ATTENTION!\n\nYour firmware version requires 4.83 - 4.88 HFW (Hybrid Firmware) to be installed, containing exploitable modules.";
 	var msgCongrats = "Congratulations! We've detected your PlayStation 3 is running FW " + fwVersion + ", which is compatible with ps3hen! Enjoy!";
 	switch (uaStringCheck) {
 		case "PLAYSTATION":
 			switch (fwVersion) {
+				case fwCompat[24]:
+					//alert(msgHFW);
+					initDEX();
+					//loadcex_482();
+					break;
+					
+				case fwCompat[25]:
+					//alert(msgHFW);
+					//initDEX();
+					loadcex_483();
+					break;
+					
 				case fwCompat[26]:
 					//alert(msgHFW);
-//					initDEX();
-					loadcex_484();
+					initDEX();
+					//loadcex_484();
 					break;
 					
 				case fwCompat[27]:
@@ -2437,7 +2466,7 @@ function ps3chk(){
 					break;					
 					
 				default:
-					//alert('Your PS3 is not on FW 4.84 - 4.90! Your current running FW version is ' + fwVersion + ', which is not compatible with ps3hen 1.0. All features have been disabled');
+					alert('Your PS3 is not on FW 4.82 - 4.90! Your current running FW version is ' + fwVersion + ', which is not compatible with PS3HEN. All features have been disabled');
 					disable_all();
 					break;
 			}
